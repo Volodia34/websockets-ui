@@ -5,15 +5,21 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
+        "build": "tsc",
         "start": "node ./index.js",
         "start:dev": "nodemon ./index.js",
+        "watch": "tsc --watch",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Andrei Auchynnikau",
     "keywords": [],
     "license": "ISC",
     "devDependencies": {
-        "nodemon": "^2.0.16"
+        "@types/node": "^22.15.19",
+        "@types/ws": "^8.18.1",
+        "nodemon": "^2.0.16",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.8.3"
     },
     "dependencies": {
         "ws": "^8.8.0"
