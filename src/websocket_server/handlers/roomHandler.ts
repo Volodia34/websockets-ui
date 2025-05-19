@@ -3,7 +3,7 @@ import { Player, GameRoom, GameRoomUser, AddUserToRoomClientData } from '../type
 import { gameRoomsDB, getNextRoomId, findPlayerById, addRoom } from '../db.js';
 import { broadcastToAll } from '../utils.js';
 
-export function  handleCreateRoom(
+export function handleCreateRoom(
     ws: WebSocket,
     wss: WebSocketServer,
     requestingPlayerId: string,
@@ -13,7 +13,7 @@ export function  handleCreateRoom(
     const player = findPlayerById(requestingPlayerId);
 
     if (!player) {
-        console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found in DB for create_room.`);
+        console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found for create_room.`);
         ws.send(JSON.stringify({
             type: 'error',
             data: JSON.stringify({ message: 'Authentication error: Player not found.' }),

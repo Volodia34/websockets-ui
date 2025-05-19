@@ -3,7 +3,7 @@ import { broadcastToAll } from '../utils.js';
 export function handleCreateRoom(ws, wss, requestingPlayerId, messageId, connectionId) {
     const player = findPlayerById(requestingPlayerId);
     if (!player) {
-        console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found in DB for create_room.`);
+        console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found for create_room.`);
         ws.send(JSON.stringify({
             type: 'error',
             data: JSON.stringify({ message: 'Authentication error: Player not found.' }),
