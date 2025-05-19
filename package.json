@@ -7,8 +7,8 @@
     "scripts": {
 
         "build:ws": "tsc --project tsconfig.json",
-        "start:ws": "npm run build:ws && node dist/websocket_server.js",
-        "dev:ws": "nodemon --watch src --ext ts --exec ts-node src/websocket_server.ts",
+        "start:ws": "npm run build:ws && node dist/websocket_server/server.js",
+        "dev:ws": "nodemon --watch src --ext ts --exec ts-node src/websocket_server/server.ts",
         "watch:ws": "tsc --project tsconfig.json --watch",
 
         "start:http": "node ./index.js",
