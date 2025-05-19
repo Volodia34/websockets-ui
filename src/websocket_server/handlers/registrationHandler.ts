@@ -1,7 +1,8 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { Player, Winner, GameRoom, RegClientData, RegResponseData, GameRoomUser } from '../types.js';
+import { Winner, GameRoom, RegClientData, RegResponseData, GameRoomUser } from '../types.js';
 import { playersDB, winnersDB, gameRoomsDB, getNextUserIndex, findPlayerByName, addPlayer } from '../db.js';
 import { broadcastToAll } from '../utils.js';
+import {Player} from "../modules/player/player.types.js";
 
 export function handleRegistration(
     ws: WebSocket,

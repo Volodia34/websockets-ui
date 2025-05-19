@@ -1,4 +1,5 @@
-import { Player, Winner, GameRoom, ShipData, CellState, ShipHealth } from './types.js';
+import { Winner, GameRoom, ShipData, CellState, ShipHealth } from './types.js';
+import {Player} from "./modules/player/player.types.js";
 
 export const playersDB: Player[] = [];
 export const winnersDB: Winner[] = [];

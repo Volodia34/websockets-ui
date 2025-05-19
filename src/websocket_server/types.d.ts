@@ -1,8 +1,3 @@
-export interface Player {
-    id: string;
-    name: string;
-    password: string;
-}
 
 export interface Winner {
     name: string;

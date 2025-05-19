@@ -1,6 +1,5 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import {
-    Player,
     GameRoom,
     GameRoomUser,
     AddUserToRoomClientData,
