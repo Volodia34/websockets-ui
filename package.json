@@ -5,10 +5,17 @@
     "main": "index.js",
     "type": "module",
     "scripts": {
-        "build": "tsc",
-        "start": "node ./index.js",
-        "start:dev": "nodemon ./index.js",
-        "watch": "tsc --watch",
+
+        "build:ws": "tsc --project tsconfig.json",
+        "start:ws": "npm run build:ws && node dist/websocket_server.js",
+        "dev:ws": "nodemon --watch src --ext ts --exec ts-node src/websocket_server.ts",
+        "watch:ws": "tsc --project tsconfig.json --watch",
+
+        "start:http": "node ./index.js",
+        "dev:http": "nodemon ./index.js",
+
+        "start": "npm run start:ws",
+
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "author": "Andrei Auchynnikau",
