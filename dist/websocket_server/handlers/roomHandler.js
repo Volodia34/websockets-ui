@@ -33,7 +33,11 @@ export function handleCreateRoom(ws, wss, requestingPlayerId, messageId, connect
     const creator = { name: player.name, index: player.id };
     const newRoom = {
         roomId: newRoomId,
-        roomUsers: [creator]
+        roomUsers: [creator],
+        shipsReadyCount: 0,
+        player1Ships: null,
+        player2Ships: null,
+        currentPlayerTurn: null,
     };
     addRoom(newRoom);
     console.log(`[${connectionId}] Player ${player.name} (ID: ${requestingPlayerId}) created room ${newRoomId}.`);
@@ -109,6 +113,10 @@ export function handleAddUserToRoom(ws, wss, joiningPlayerId, clientData, messag
     console.log(`[${connectionId}] Player ${joiningPlayer.name} (ID: ${joiningPlayerId}) successfully joined room ${foundRoom.roomId}.`);
     console.log(`[${connectionId}] Room ${foundRoom.roomId} users:`, foundRoom.roomUsers.map(u => u.name));
     if (foundRoom.roomUsers.length === 2) {
+        foundRoom.shipsReadyCount = 0;
+        foundRoom.player1Ships = null;
+        foundRoom.player2Ships = null;
+        foundRoom.currentPlayerTurn = null;
         foundRoom.roomUsers.forEach(userInRoom => {
             const createGamePayload = {
                 idGame: foundRoom.roomId,

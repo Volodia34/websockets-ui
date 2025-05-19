@@ -84,7 +84,7 @@ export function handleRegistration(
         broadcastToAll(wss, updateWinnersMessage);
         console.log(`[Broadcast] Sent 'update_winners'. Data:`, winnersPayload);
 
-        const roomsForUpdate: GameRoom[] = gameRoomsDB
+        const roomsForUpdate: Partial<GameRoom>[] = gameRoomsDB
             .filter(room => room.roomUsers.length === 1)
             .map(room => ({
                 roomId: room.roomId,

@@ -40,3 +40,29 @@ export function removePlayerFromRooms(playerId) {
         room.roomUsers = room.roomUsers.filter(user => user.index !== playerId);
     });
 }
+export function updatePlayerShips(roomId, playerId, ships) {
+    const room = findRoomById(roomId);
+    if (room && room.roomUsers.length === 2) {
+        const playerIndexInRoom = room.roomUsers.findIndex(user => user.index === playerId);
+        if (playerIndexInRoom === 0) {
+            if (!room.player1Ships) {
+                room.player1Ships = ships;
+                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
+            }
+        }
+        else if (playerIndexInRoom === 1) {
+            if (!room.player2Ships) {
+                room.player2Ships = ships;
+                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
+            }
+        }
+        return room;
+    }
+    return undefined;
+}
+export function setCurrentPlayerTurn(roomId, playerId) {
+    const room = findRoomById(roomId);
+    if (room) {
+        room.currentPlayerTurn = playerId;
+    }
+}

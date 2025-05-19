@@ -56,7 +56,11 @@ export function handleCreateRoom(
     const creator: GameRoomUser = { name: player.name, index: player.id };
     const newRoom: GameRoom = {
         roomId: newRoomId,
-        roomUsers: [creator]
+        roomUsers: [creator],
+        shipsReadyCount: 0,
+        player1Ships: null,
+        player2Ships: null,
+        currentPlayerTurn: null,
     };
 
     addRoom(newRoom);
@@ -150,6 +154,11 @@ export function handleAddUserToRoom(
     console.log(`[${connectionId}] Room ${foundRoom.roomId} users:`, foundRoom.roomUsers.map(u => u.name));
 
     if (foundRoom.roomUsers.length === 2) {
+        foundRoom.shipsReadyCount = 0;
+        foundRoom.player1Ships = null;
+        foundRoom.player2Ships = null;
+        foundRoom.currentPlayerTurn = null;
+
         foundRoom.roomUsers.forEach(userInRoom => {
             const createGamePayload: CreateGameResponseData = {
                 idGame: foundRoom.roomId,

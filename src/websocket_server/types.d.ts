@@ -35,6 +35,10 @@ export interface GameRoomUser {
 export interface GameRoom {
     roomId: string;
     roomUsers: GameRoomUser[];
+    player1Ships?: ShipData[] | null;
+    player2Ships?: ShipData[] | null;
+    shipsReadyCount?: number;
+    currentPlayerTurn?: string | null;
 }
 
 export interface AddUserToRoomClientData {
@@ -51,4 +55,19 @@ export interface ShipData {
     direction: boolean;
     length: number;
     type: "small" | "medium" | "large" | "huge";
+}
+
+export interface AddShipsClientData {
+    gameId: string;
+    ships: ShipData[];
+    indexPlayer: string;
+}
+
+export interface StartGameResponseData {
+    ships: ShipData[];
+    currentPlayerIndex: string;
+}
+
+export interface TurnResponseData {
+    currentPlayer: string;
 }
