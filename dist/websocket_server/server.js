@@ -1,11 +1,11 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { authHandlerInstance } from './modules/auth/auth.handler.js'; // НОВИЙ
-import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
-import { playerRepositoryInstance } from './modules/player/player.repository.js';
+import { authHandlerInstance } from './modules/auth/auth.handler.js';
+import { roomHandlerInstance } from './modules/room/room.handler.js';
 import { generateConnectionId } from './core/wsUtils.js';
-import { gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB } from './db.js';
 import { broadcastToAll } from './core/wsUtils.js';
 import { handleAddShips, handleAttack, handleRandomAttack } from "./handlers/gameHandler.js";
+import { gameRoomsDB, updateWinners, winnersDB } from "./db.js";
+import { playerRepositoryInstance } from "./modules/player/player.repository.js";
 const PORT = process.env.PORT || 3000;
 const wss = new WebSocketServer({ port: Number(PORT) });
 console.log(`WebSocket server started on ws://localhost:${PORT}`);
@@ -62,7 +62,7 @@ wss.on('connection', (ws, req) => {
                         }));
                         return;
                     }
-                    handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId);
+                    roomHandlerInstance.handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId);
                     break;
                 case 'add_user_to_room':
                     if (!currentPlayerId) {
@@ -81,7 +81,7 @@ wss.on('connection', (ws, req) => {
                         if (!addUserToRoomData || typeof addUserToRoomData.indexRoom !== 'string' || addUserToRoomData.indexRoom.trim() === '') {
                             throw new Error('indexRoom is missing, not a string, or empty in add_user_to_room data.');
                         }
-                        handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id, connectionId);
+                        roomHandlerInstance.handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing add_user_to_room data payload';

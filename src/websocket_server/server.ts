@@ -1,27 +1,19 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as http from 'node:http';
-import {
-    ClientMessage,
-    AddUserToRoomClientData,
-    AddShipsClientData,
-    AttackClientData,
-    Winner,
-    FinishResponseData
-} from './types.js';
+import {AddShipsClientData, AttackClientData, ClientMessage, FinishResponseData, Winner} from './types.js';
 import { RegClientData } from './modules/auth/auth.types.js';
+import { AddUserToRoomClientData } from './modules/room/room.types.js';
 
-import { authHandlerInstance } from './modules/auth/auth.handler.js'; // НОВИЙ
-
-import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
-
-import {PlayerRepository, playerRepositoryInstance} from './modules/player/player.repository.js';
-import { PlayerService } from './modules/player/player.service.js';
-import { AuthService } from './modules/auth/auth.service.js';
+import { authHandlerInstance } from './modules/auth/auth.handler.js';
+import { roomHandlerInstance } from './modules/room/room.handler.js';
+import { roomServiceInstance } from './modules/room/room.service.js';
 
 import { generateConnectionId } from './core/wsUtils.js';
-import {gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB} from './db.js';
 import { broadcastToAll } from './core/wsUtils.js';
 import {handleAddShips, handleAttack, handleRandomAttack} from "./handlers/gameHandler.js";
+import {gameRoomsDB, updateWinners, winnersDB} from "./db.js";
+import {playerRepositoryInstance} from "./modules/player/player.repository.js";
+import {roomRepositoryInstance} from "./modules/room/room.repository.js";
 
 const PORT = process.env.PORT || 3000;
 const wss = new WebSocketServer({ port: Number(PORT) });
@@ -82,7 +74,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
                         }));
                         return;
                     }
-                    handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId);
+                    roomHandlerInstance.handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId);
                     break;
                 case 'add_user_to_room':
                     if (!currentPlayerId) {
@@ -100,7 +92,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
                         if (!addUserToRoomData || typeof addUserToRoomData.indexRoom !== 'string' || addUserToRoomData.indexRoom.trim() === '') {
                             throw new Error('indexRoom is missing, not a string, or empty in add_user_to_room data.');
                         }
-                        handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id, connectionId);
+                        roomHandlerInstance.handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id, connectionId);
                     } catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing add_user_to_room data payload';
                         console.error(`[${connectionId}] Error parsing 'add_user_to_room' data payload: ${errorMsg}. Payload string: ${clientMsg.data}`);
