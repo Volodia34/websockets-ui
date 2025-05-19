@@ -1,8 +1,10 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { Winner, GameRoom, RegClientData, RegResponseData, GameRoomUser } from '../types.js';
-import { playersDB, winnersDB, gameRoomsDB, getNextUserIndex, findPlayerByName, addPlayer } from '../db.js';
+import { Winner, GameRoom, RegClientData, RegResponseData,  } from '../types.js';
+import { playerRepositoryInstance } from '../modules/player/player.repository.js';
+import { winnersDB, gameRoomsDB } from '../db.js';
 import { broadcastToAll } from '../utils.js';
 import {Player} from "../modules/player/player.types.js";
+
 
 export function handleRegistration(
     ws: WebSocket,
@@ -29,7 +31,7 @@ export function handleRegistration(
         return;
     }
 
-    let existingPlayer = findPlayerByName(playerName);
+    let existingPlayer = playerRepositoryInstance.findByName(playerName);
     let responseDataPayload: RegResponseData;
 
     if (existingPlayer) {
@@ -52,13 +54,13 @@ export function handleRegistration(
             };
         }
     } else {
-        const newPlayerId = getNextUserIndex();
+        const newPlayerId = playerRepositoryInstance.getNextUserIndex();
         const newPlayer: Player = {
             id: newPlayerId,
             name: playerName,
             password: playerPassword,
         };
-        addPlayer(newPlayer);
+        playerRepositoryInstance.addPlayer(newPlayer);
         (ws as any).playerId = newPlayer.id;
         console.log(`[${connectionId}] Player ${playerName} registered with ID ${newPlayer.id}. Associated ws with playerId: ${newPlayer.id}`);
         responseDataPayload = {

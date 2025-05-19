@@ -1,29 +1,12 @@
 import { Winner, GameRoom, ShipData, CellState, ShipHealth } from './types.js';
 import {Player} from "./modules/player/player.types.js";
 
-export const playersDB: Player[] = [];
 export const winnersDB: Winner[] = [];
 export const gameRoomsDB: GameRoom[] = [];
 
 let nextPlayerIdCounter = 0;
 
-export function getNextUserIndex(): string {
-    nextPlayerIdCounter++;
-    return `player_${nextPlayerIdCounter}`;
-}
 
-export function findPlayerByName(name: string): Player | undefined {
-    return playersDB.find(player => player.name === name);
-}
-
-export function findPlayerById(id: string): Player | undefined {
-    return playersDB.find(player => player.id === id);
-}
-
-
-export function addPlayer(player: Player): void {
-    playersDB.push(player);
-}
 
 export function updateWinners(winnerName: string): void {
     const winner = winnersDB.find(w => w.name === winnerName);

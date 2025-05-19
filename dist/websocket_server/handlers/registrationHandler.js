@@ -1,4 +1,5 @@
-import { winnersDB, gameRoomsDB, getNextUserIndex, findPlayerByName, addPlayer } from '../db.js';
+import { playerRepositoryInstance } from '../modules/player/player.repository.js';
+import { winnersDB, gameRoomsDB } from '../db.js';
 import { broadcastToAll } from '../utils.js';
 export function handleRegistration(ws, wss, regClientData, messageId, connectionId) {
     const { name: playerName, password: playerPassword } = regClientData;
@@ -17,7 +18,7 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
         }));
         return;
     }
-    let existingPlayer = findPlayerByName(playerName);
+    let existingPlayer = playerRepositoryInstance.findByName(playerName);
     let responseDataPayload;
     if (existingPlayer) {
         if (existingPlayer.password === playerPassword) {
@@ -41,13 +42,13 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
         }
     }
     else {
-        const newPlayerId = getNextUserIndex();
+        const newPlayerId = playerRepositoryInstance.getNextUserIndex();
         const newPlayer = {
             id: newPlayerId,
             name: playerName,
             password: playerPassword,
         };
-        addPlayer(newPlayer);
+        playerRepositoryInstance.addPlayer(newPlayer);
         ws.playerId = newPlayer.id;
         console.log(`[${connectionId}] Player ${playerName} registered with ID ${newPlayer.id}. Associated ws with playerId: ${newPlayer.id}`);
         responseDataPayload = {
