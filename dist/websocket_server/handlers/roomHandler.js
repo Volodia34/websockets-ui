@@ -1,4 +1,5 @@
-import { gameRoomsDB, getNextRoomId, findPlayerById, addRoom } from '../db.js';
+import { WebSocket } from 'ws';
+import { gameRoomsDB, getNextRoomId, findPlayerById, addRoom, findRoomById } from '../db.js';
 import { broadcastToAll } from '../utils.js';
 export function handleCreateRoom(ws, wss, requestingPlayerId, messageId, connectionId) {
     const player = findPlayerById(requestingPlayerId);
@@ -51,5 +52,97 @@ export function handleCreateRoom(ws, wss, requestingPlayerId, messageId, connect
     console.log(`[${connectionId}] Broadcast 'update_room' after room creation. Data:`, availableRooms);
 }
 export function handleAddUserToRoom(ws, wss, joiningPlayerId, clientData, messageId, connectionId) {
-    console.log(`[${connectionId}] handleAddUserToRoom called by PlayerID: ${joiningPlayerId} for RoomID: ${clientData.indexRoom}. Implementation pending.`);
+    const joiningPlayer = findPlayerById(joiningPlayerId);
+    if (!joiningPlayer) {
+        console.error(`[${connectionId}] Joining player with ID ${joiningPlayerId} not found.`);
+        ws.send(JSON.stringify({
+            type: 'error',
+            data: JSON.stringify({ message: 'Authentication error: Your player ID was not found.' }),
+            id: messageId
+        }));
+        return;
+    }
+    const targetRoomId = clientData.indexRoom;
+    const foundRoom = findRoomById(targetRoomId);
+    if (!foundRoom) {
+        console.warn(`[${connectionId}] Room ${targetRoomId} not found for player ${joiningPlayer.name} (ID: ${joiningPlayerId}).`);
+        ws.send(JSON.stringify({
+            type: 'error',
+            data: JSON.stringify({ message: `Room with ID ${targetRoomId} not found.` }),
+            id: messageId
+        }));
+        return;
+    }
+    if (foundRoom.roomUsers.some(user => user.index === joiningPlayerId)) {
+        console.log(`[${connectionId}] Player ${joiningPlayer.name} (ID: ${joiningPlayerId}) is already in room ${targetRoomId}.`);
+        ws.send(JSON.stringify({
+            type: 'error',
+            data: JSON.stringify({ message: 'You are already in this room.' }),
+            id: messageId
+        }));
+        return;
+    }
+    if (foundRoom.roomUsers.length >= 2) {
+        console.log(`[${connectionId}] Room ${targetRoomId} is already full. Player ${joiningPlayer.name} (ID: ${joiningPlayerId}) cannot join.`);
+        ws.send(JSON.stringify({
+            type: 'error',
+            data: JSON.stringify({ message: 'The room is already full.' }),
+            id: messageId
+        }));
+        const currentAvailableRooms = gameRoomsDB
+            .filter(room => room.roomUsers.length === 1)
+            .map(room => ({ roomId: room.roomId, roomUsers: room.roomUsers.map(u => ({ name: u.name, index: u.index })) }));
+        broadcastToAll(wss, { type: "update_room", data: JSON.stringify(currentAvailableRooms), id: 0 });
+        return;
+    }
+    if (foundRoom.roomUsers.length === 0) {
+        console.warn(`[${connectionId}] Room ${targetRoomId} was empty. Player ${joiningPlayer.name} (ID: ${joiningPlayerId}) will become the first player.`);
+        foundRoom.roomUsers.push({ name: joiningPlayer.name, index: joiningPlayer.id });
+        const roomsAfterJoin = gameRoomsDB
+            .filter(room => room.roomUsers.length === 1)
+            .map(room => ({ roomId: room.roomId, roomUsers: room.roomUsers.map(u => ({ name: u.name, index: u.index })) }));
+        broadcastToAll(wss, { type: "update_room", data: JSON.stringify(roomsAfterJoin), id: 0 });
+        console.log(`[Broadcast] Sent 'update_room' after player ${joiningPlayer.name} joined an empty room. Data:`, roomsAfterJoin);
+        return;
+    }
+    foundRoom.roomUsers.push({ name: joiningPlayer.name, index: joiningPlayer.id });
+    console.log(`[${connectionId}] Player ${joiningPlayer.name} (ID: ${joiningPlayerId}) successfully joined room ${foundRoom.roomId}.`);
+    console.log(`[${connectionId}] Room ${foundRoom.roomId} users:`, foundRoom.roomUsers.map(u => u.name));
+    if (foundRoom.roomUsers.length === 2) {
+        foundRoom.roomUsers.forEach(userInRoom => {
+            const createGamePayload = {
+                idGame: foundRoom.roomId,
+                idPlayer: userInRoom.index
+            };
+            let targetWs;
+            wss.clients.forEach((clientWs) => {
+                if (clientWs.playerId === userInRoom.index) {
+                    targetWs = clientWs;
+                }
+            });
+            if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                targetWs.send(JSON.stringify({
+                    type: "create_game",
+                    data: JSON.stringify(createGamePayload),
+                    id: 0
+                }));
+                console.log(`[${connectionId}] Sent 'create_game' to player ${userInRoom.name} (ID: ${userInRoom.index}) for game ${foundRoom.roomId}`);
+            }
+            else {
+                console.warn(`[${connectionId}] Could not find active WebSocket for player ${userInRoom.name} (ID: ${userInRoom.index}) to send 'create_game'.`);
+            }
+        });
+    }
+    const availableRoomsNow = gameRoomsDB
+        .filter(room => room.roomUsers.length === 1)
+        .map(room => ({
+        roomId: room.roomId,
+        roomUsers: room.roomUsers.map(user => ({ name: user.name, index: user.index }))
+    }));
+    broadcastToAll(wss, {
+        type: "update_room",
+        data: JSON.stringify(availableRoomsNow),
+        id: 0
+    });
+    console.log(`[Broadcast] Sent 'update_room' after player ${joiningPlayer.name} joined room ${foundRoom.roomId}. Available rooms:`, availableRoomsNow);
 }
