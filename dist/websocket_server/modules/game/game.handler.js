@@ -1,6 +1,7 @@
 import { WebSocket } from 'ws';
 import { gameServiceInstance } from './game.service.js';
 import { broadcastToAll } from '../../core/wsUtils.js';
+import { roomServiceInstance } from "../room/room.service.js";
 export class GameHandler {
     gameService;
     constructor(gameService) {
@@ -42,7 +43,7 @@ export class GameHandler {
         else if (result.room) {
             console.log(`[${connectionId}] Ships added by ${clientData.indexPlayer}, waiting for other player. Ships ready: ${result.room.shipsReadyCount}`);
             ws.send(JSON.stringify({
-                type: "ships_accepted", // Приклад типу
+                type: "ships_accepted",
                 data: JSON.stringify({ gameId: clientData.gameId, playerId: clientData.indexPlayer }),
                 id: messageId
             }));
@@ -75,7 +76,7 @@ export class GameHandler {
                 status: result.attackResult.status,
                 currentPlayer: result.nextPlayerId || room.currentPlayerTurn || "",
                 shipField: result.attackResult.sunkShip ? [result.attackResult.sunkShip] : undefined,
-                winPlayer: result.winnerId
+                winPlayer: result.winnerId ?? undefined
             };
             const messagePayload = {
                 type: "attack",
@@ -128,6 +129,11 @@ export class GameHandler {
         else {
             console.error(`[${connectionId}] Room not found after attack for game ${clientData.gameId}`);
         }
+    }
+    removePlayerFromRooms(playerId) {
+        console.log(`[GameHandler] Removing player ${playerId} from all rooms.`);
+        const updatedRooms = roomServiceInstance.removePlayerFromRoomsAndNotify(playerId, 'GameHandler');
+        console.log(`[GameHandler] Updated available rooms:`, updatedRooms);
     }
 }
 export const gameHandlerInstance = new GameHandler(gameServiceInstance);

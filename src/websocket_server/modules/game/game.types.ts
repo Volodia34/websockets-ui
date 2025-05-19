@@ -29,6 +29,25 @@ export interface PlayerBoardState {
     ships: ShipData[];
 }
 
+export interface AttackResponseData {
+    position: { x: number; y: number };
+    status: 'miss' | 'shot' | 'killed';
+    currentPlayer: string;
+    shipField?: ShipData[];
+    winPlayer?: string;
+}
+
+
+
+export interface AttackClientData {
+    gameId: string;
+    x: number;
+    y: number;
+    indexPlayer: string;
+}
+
+export type AttackStatus = "miss" | "killed" | "shot";
+
 export interface AttackResult {
     status: 'miss' | 'shot' | 'killed';
     position: { x: number; y: number };
@@ -65,3 +84,6 @@ export interface PlayerGameState {
     ships: ShipData[];
     isReady: boolean;
 }
+
+
+

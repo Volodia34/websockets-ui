@@ -5,23 +5,16 @@ import {
     AddShipsClientData,
     AttackClientData,
     AttackResult,
-    AttackServiceResult, CellStatus, GameBoard,
-    PlayerGameState,
+    AttackServiceResult,
+    CellStatus,
+    GameBoard,
     ShipData,
-    StartGameDataToClient
+    StartGameDataToClient,
 } from './game.types.js';
-import {updateWinners} from "../../db.js";
-
-export interface GameUpdateNofify {
-    type: 'attack_result' | 'game_start' | 'turn_update' | 'game_finish';
-    payload: any;
-    recipients: string[];
-}
+import { updateWinners } from '../../db.js';
 
 export class GameService {
-
-    private activeGameBoards: Map<string, { board1: GameBoard, board2: GameBoard }> = new Map();
-
+    private activeGameBoards: Map<string, { board1: GameBoard; board2: GameBoard }> = new Map();
 
     constructor(
         private roomRepository: RoomRepository,
@@ -31,7 +24,7 @@ export class GameService {
     public addShips(
         clientData: AddShipsClientData,
         connectionId: string
-    ): { room?: GameRoom, gameCanStart?: boolean, startGameData?: { player1: StartGameDataToClient, player2: StartGameDataToClient } } {
+    ): { room?: GameRoom; gameCanStart?: boolean; startGameData?: { player1: StartGameDataToClient; player2: StartGameDataToClient } } {
         const { gameId, ships, indexPlayer } = clientData;
         const room = this.roomRepository.findById(gameId);
 
@@ -87,15 +80,15 @@ export class GameService {
             return { success: false, message: `Room ${gameId} not found.` };
         }
         if (room.currentPlayerTurn !== attackerId) {
-            return { success: false, message: "Not your turn." };
+            return { success: false, message: 'Not your turn.' };
         }
         if (room.roomUsers.length < 2 || room.shipsReadyCount !== 2) {
-            return { success: false, message: "Game not started or not all players ready." };
+            return { success: false, message: 'Game not started or not all players ready.' };
         }
 
         const opponent = room.roomUsers.find(user => user.index !== attackerId);
         if (!opponent) {
-            return { success: false, message: "Opponent not found." };
+            return { success: false, message: 'Opponent not found.' };
         }
 
         const opponentPlayerId = opponent.index;
@@ -109,24 +102,21 @@ export class GameService {
         const targetBoard = attackerId === room.roomUsers[0].index ? gameBoards.board2 : gameBoards.board1;
 
         if (y < 0 || y >= targetBoard.length || x < 0 || x >= targetBoard[0].length) {
-            return { success: false, message: "Attack coordinates out of bounds." };
+            return { success: false, message: 'Attack coordinates out of bounds.' };
         }
         if (targetBoard[y][x] === 1 || targetBoard[y][x] === 3 || targetBoard[y][x] === 4) {
-            return { success: false, message: "Cell already attacked." };
+            return { success: false, message: 'Cell already attacked.' };
         }
 
         let attackResultStatus: 'miss' | 'shot' | 'killed' = 'miss';
-        let sunkShipData: ShipData;
-        let sunkShipCellsMarked: Array<{x:number, y:number, status: CellStatus}> = [];
+        let sunkShipData: ShipData | undefined;
 
-        let hitShipIndex = -1;
-        opponentShips = opponentShips.map((ship, index) => {
+        opponentShips = opponentShips.map(ship => {
             if (ship.isSunk) return ship;
             for (let i = 0; i < ship.length; i++) {
                 const shipX = ship.direction ? ship.position.x : ship.position.x + i;
                 const shipY = ship.direction ? ship.position.y + i : ship.position.y;
                 if (shipX === x && shipY === y) {
-                    hitShipIndex = index;
                     const newHits = (ship.hits || 0) + 1;
                     const isSunk = newHits >= ship.length;
                     if (isSunk) {
@@ -135,7 +125,7 @@ export class GameService {
                     } else {
                         attackResultStatus = 'shot';
                     }
-                    return { ...ship, hits: newHits, isSunk: isSunk };
+                    return { ...ship, hits: newHits, isSunk };
                 }
             }
             return ship;
@@ -146,14 +136,7 @@ export class GameService {
         } else {
             targetBoard[y][x] = 3 as CellStatus;
             if (sunkShipData) {
-                for (let i = 0; i < sunkShipData.length; i++) {
-                    const sx = sunkShipData.direction ? sunkShipData.position.x : sunkShipData.position.x + i;
-                    const sy = sunkShipData.direction ? sunkShipData.position.y + i : sunkShipData.position.y;
-                    targetBoard[sy][sx] = 4 as CellStatus; // Sunk
-                    sunkShipCellsMarked.push({y: sy, x: sx, status: 4 as CellStatus});
-                }
-                const markedAround = this.markCellsAroundSunkShip(targetBoard, sunkShipData);
-                sunkShipCellsMarked.push(...markedAround);
+                this.markCellsAroundSunkShip(targetBoard, sunkShipData);
             }
             this.roomRepository.updatePlayerShipState(gameId, opponentPlayerId, opponentShips);
         }
@@ -168,17 +151,15 @@ export class GameService {
             this.activeGameBoards.delete(gameId);
         }
 
-        const nextPlayer = (attackResultStatus === 'miss' && !winner) ? opponentPlayerId : attackerId;
-        if(!winner) {
+        const nextPlayer = attackResultStatus === 'miss' && !winner ? opponentPlayerId : attackerId;
+        if (!winner) {
             this.roomRepository.setCurrentPlayerTurn(gameId, nextPlayer);
         }
-
 
         const finalAttackResult: AttackResult = {
             status: attackResultStatus,
             position: { x, y },
             sunkShip: sunkShipData,
-            sunkShipCells: sunkShipCellsMarked.length > 0 ? sunkShipCellsMarked : undefined
         };
 
         return {
@@ -186,8 +167,23 @@ export class GameService {
             attackResult: finalAttackResult,
             nextPlayerId: winner ? null : nextPlayer,
             winnerId: winner,
-            room: this.roomRepository.findById(gameId)
+            room: this.roomRepository.findById(gameId),
         };
+    }
+
+    private markCellsAroundSunkShip(board: GameBoard, sunkShip: ShipData): void {
+        const { position, length, direction } = sunkShip;
+
+        for (let i = -1; i <= length; i++) {
+            for (let j = -1; j <= 1; j++) {
+                const x = direction ? position.x + j : position.x + i;
+                const y = direction ? position.y + i : position.y + j;
+
+                if (x >= 0 && y >= 0 && y < board.length && x < board[0].length && board[y][x] === 0) {
+                    board[y][x] = 2 as CellStatus;
+                }
+            }
+        }
     }
 }
 

@@ -13,8 +13,7 @@ export class RoomService {
             console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found for create_room.`);
             return { success: false, message: 'Authentication error: Player not found.' };
         }
-        const allRooms = this.roomRepository.getAll();
-        const alreadyInRoom = allRooms.find(room => room.roomUsers.some(user => user.index === requestingPlayerId));
+        const alreadyInRoom = this.roomRepository.getAll().find(room => room.roomUsers.some(user => user.index === requestingPlayerId));
         if (alreadyInRoom) {
             console.log(`[${connectionId}] Player ${player.name} (ID: ${requestingPlayerId}) is already in room ${alreadyInRoom.roomId}. Cannot create new room.`);
             return {

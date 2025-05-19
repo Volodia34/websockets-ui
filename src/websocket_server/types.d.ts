@@ -32,26 +32,10 @@ export interface ShipHealth extends ShipData {
     hits: number;
     isSunk: boolean;
     cells: {x: number, y: number}[];
+    length: number;
 }
 
 
-
-
-
-export interface AttackClientData {
-    gameId: string;
-    x: number;
-    y: number;
-    indexPlayer: string;
-}
-
-export type AttackStatus = "miss" | "killed" | "shot";
-
-export interface AttackResponseData {
-    position: { x: number; y: number };
-    currentPlayer: string;
-    status: AttackStatus;
-}
 
 export interface FinishResponseData {
     winPlayer: string;

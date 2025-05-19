@@ -4,7 +4,6 @@ import { roomHandlerInstance } from './modules/room/room.handler.js';
 import { gameHandlerInstance } from './modules/game/game.handler.js';
 import { generateConnectionId } from './core/wsUtils.js';
 import { broadcastToAll } from './core/wsUtils.js';
-import { handleAddShips, handleAttack, handleRandomAttack } from "./handlers/gameHandler.js";
 import { gameRoomsDB, updateWinners, winnersDB } from "./db.js";
 import { playerRepositoryInstance } from "./modules/player/player.repository.js";
 const PORT = process.env.PORT || 3000;
@@ -111,7 +110,7 @@ wss.on('connection', (ws, req) => {
                             console.warn(`[${connectionId}] Mismatched playerId for add_ships. Authenticated: ${currentPlayerId}, Sent: ${addShipsData.indexPlayer}`);
                             throw new Error('Player ID in add_ships data does not match authenticated player.');
                         }
-                        handleAddShips(ws, wss, addShipsData, clientMsg.id, connectionId);
+                        gameHandlerInstance.handleAddShips(ws, wss, addShipsData, clientMsg.id, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating add_ships data payload';
@@ -140,7 +139,7 @@ wss.on('connection', (ws, req) => {
                         if (typeof attackData.x !== 'number' || typeof attackData.y !== 'number' || !attackData.gameId) {
                             throw new Error('Invalid payload for attack: gameId, x, and y are required.');
                         }
-                        handleAttack(ws, wss, attackData, clientMsg.id, connectionId);
+                        gameHandlerInstance.handleAttack(ws, wss, attackData, clientMsg.id, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating attack data payload';
@@ -169,7 +168,7 @@ wss.on('connection', (ws, req) => {
                         if (!randomAttackData.gameId) {
                             throw new Error('Invalid payload for randomAttack: gameId is required.');
                         }
-                        handleRandomAttack(ws, wss, randomAttackData, clientMsg.id, connectionId);
+                        // gameHandlerInstance.handleRandomAttack(ws, wss, randomAttackData, clientMsg.id, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating randomAttack data payload';

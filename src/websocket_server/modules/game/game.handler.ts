@@ -1,8 +1,14 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { GameService, gameServiceInstance } from './game.service.js';
-import {AddShipsClientData, StartGameDataToClient, TurnDataToClient} from './game.types.js';
+import {
+    AddShipsClientData,
+    AttackClientData,
+    AttackResponseData,
+    StartGameDataToClient,
+    TurnDataToClient
+} from './game.types.js';
 import { broadcastToAll } from '../../core/wsUtils.js';
-import {AttackClientData, AttackResponseData} from "../../types.js";
+import {roomServiceInstance} from "../room/room.service.js";
 
 export class GameHandler {
     constructor(private gameService: GameService) {}
@@ -56,7 +62,7 @@ export class GameHandler {
         } else if(result.room) {
             console.log(`[${connectionId}] Ships added by ${clientData.indexPlayer}, waiting for other player. Ships ready: ${result.room.shipsReadyCount}`);
             ws.send(JSON.stringify({
-                type: "ships_accepted", // Приклад типу
+                type: "ships_accepted",
                 data: JSON.stringify({ gameId: clientData.gameId, playerId: clientData.indexPlayer }),
                 id: messageId
             }));
@@ -98,7 +104,7 @@ export class GameHandler {
                 status: result.attackResult.status,
                 currentPlayer: result.nextPlayerId || room.currentPlayerTurn || "",
                 shipField: result.attackResult.sunkShip ? [result.attackResult.sunkShip] : undefined,
-                winPlayer: result.winnerId
+                winPlayer: result.winnerId ?? undefined
             };
 
             const messagePayload = {
@@ -153,6 +159,13 @@ export class GameHandler {
             console.error(`[${connectionId}] Room not found after attack for game ${clientData.gameId}`);
         }
     }
+
+    public removePlayerFromRooms(playerId: string): void {
+        console.log(`[GameHandler] Removing player ${playerId} from all rooms.`);
+        const updatedRooms = roomServiceInstance.removePlayerFromRoomsAndNotify(playerId, 'GameHandler');
+        console.log(`[GameHandler] Updated available rooms:`, updatedRooms);
+    }
+
 }
 
 export const gameHandlerInstance = new GameHandler(gameServiceInstance);
