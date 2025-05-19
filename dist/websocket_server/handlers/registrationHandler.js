@@ -1,4 +1,5 @@
-import { getNextUserIndex, findPlayerByName, addPlayer } from '../db.js';
+import { winnersDB, gameRoomsDB, getNextUserIndex, findPlayerByName, addPlayer } from '../db.js';
+import { broadcastToAll } from '../utils.js';
 export function handleRegistration(ws, wss, regClientData, messageId, connectionId) {
     const { name: playerName, password: playerPassword } = regClientData;
     if (!playerName || typeof playerName !== 'string' || playerName.trim() === '' ||
@@ -20,6 +21,8 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
     let responseDataPayload;
     if (existingPlayer) {
         if (existingPlayer.password === playerPassword) {
+            ws.playerId = existingPlayer.id;
+            console.log(`[${connectionId}] Player ${playerName} (ID: ${existingPlayer.id}) logged in. Associated ws with playerId: ${existingPlayer.id}`);
             responseDataPayload = {
                 name: existingPlayer.name,
                 index: existingPlayer.id,
@@ -28,6 +31,7 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
             };
         }
         else {
+            console.log(`[${connectionId}] Incorrect password for player ${playerName}.`);
             responseDataPayload = {
                 name: playerName,
                 index: '',
@@ -44,6 +48,8 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
             password: playerPassword,
         };
         addPlayer(newPlayer);
+        ws.playerId = newPlayer.id;
+        console.log(`[${connectionId}] Player ${playerName} registered with ID ${newPlayer.id}. Associated ws with playerId: ${newPlayer.id}`);
         responseDataPayload = {
             name: newPlayer.name,
             index: newPlayer.id,
@@ -56,4 +62,27 @@ export function handleRegistration(ws, wss, regClientData, messageId, connection
         data: JSON.stringify(responseDataPayload),
         id: messageId,
     }));
+    if (!responseDataPayload.error) {
+        const winnersPayload = [...winnersDB];
+        const updateWinnersMessage = {
+            type: "update_winners",
+            data: JSON.stringify(winnersPayload),
+            id: 0,
+        };
+        broadcastToAll(wss, updateWinnersMessage);
+        console.log(`[Broadcast] Sent 'update_winners'. Data:`, winnersPayload);
+        const roomsForUpdate = gameRoomsDB
+            .filter(room => room.roomUsers.length === 1)
+            .map(room => ({
+            roomId: room.roomId,
+            roomUsers: room.roomUsers.map(user => ({ name: user.name, index: user.index }))
+        }));
+        const updateRoomMessage = {
+            type: "update_room",
+            data: JSON.stringify(roomsForUpdate),
+            id: 0,
+        };
+        broadcastToAll(wss, updateRoomMessage);
+        console.log(`[Broadcast] Sent 'update_room'. Data:`, roomsForUpdate);
+    }
 }

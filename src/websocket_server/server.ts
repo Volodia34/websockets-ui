@@ -18,6 +18,8 @@ wss.on('connection', (ws: WebSocket) => {
         const currentPlayerId = getPlayerIdFromWs(ws);
         let clientMsg: ClientMessage;
 
+        console.log(message.toString())
+
         try {
             clientMsg = JSON.parse(message.toString());
         } catch (err) {
@@ -36,7 +38,7 @@ wss.on('connection', (ws: WebSocket) => {
                 }
                 handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
                 break;
-            case 'create-room':
+            case 'create_room':
                 if (!currentPlayerId) {
                     console.warn(`[${connectionId}] Unauthorized 'create_room' attempt.`);
                     ws.send(JSON.stringify({
