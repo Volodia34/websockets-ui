@@ -27,9 +27,23 @@ export interface RegResponseData {
     errorText: string;
 }
 
+export interface GameRoomUser {
+    name: string;
+    index: string;
+}
+
 export interface GameRoom {
     roomId: string;
-    roomUsers: { name: string; index: string }[];
+    roomUsers: GameRoomUser[];
+}
+
+export interface AddUserToRoomClientData {
+    indexRoom: string;
+}
+
+export interface CreateGameResponseData {
+    idGame: string;
+    idPlayer: string;
 }
 
 export interface ShipData {

@@ -1,16 +1,23 @@
-import { WebSocketServer } from 'ws';
-import type { ClientMessage, RegClientData } from './types.d.ts';
-import { handleRegistration } from './handlers/registrationHandler.js';
-import { generateConnectionId } from './utils.js';
+import {WebSocketServer, WebSocket} from 'ws';
+import type {ClientMessage, RegClientData} from './types.d.ts';
+import {handleRegistration} from './handlers/registrationHandler.js';
+import {generateConnectionId} from './utils.js';
+import {handleCreateRoom} from "./handlers/roomHandler.js";
 
-const wss = new WebSocketServer({ port: 3000 });
+const wss = new WebSocketServer({port: 3000});
 
-wss.on('connection', (ws) => {
+const getPlayerIdFromWs = (socket: WebSocket): string | undefined => {
+    return (socket as any).playerId;
+};
+
+wss.on('connection', (ws: WebSocket) => {
     const connectionId = generateConnectionId();
     console.log(`[${connectionId}] New connection established.`);
 
     ws.on('message', (message) => {
+        const currentPlayerId = getPlayerIdFromWs(ws);
         let clientMsg: ClientMessage;
+
         try {
             clientMsg = JSON.parse(message.toString());
         } catch (err) {
@@ -29,6 +36,18 @@ wss.on('connection', (ws) => {
                 }
                 handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
                 break;
+            case 'create-room':
+                if (!currentPlayerId) {
+                    console.warn(`[${connectionId}] Unauthorized 'create_room' attempt.`);
+                    ws.send(JSON.stringify({
+                        type: 'error',
+                        data: JSON.stringify({message: 'User not authenticated to create room.'}),
+                        id: clientMsg.id
+                    }));
+                    return;
+                }
+                handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId)
+                break
 
             default:
                 console.warn(`[${connectionId}] Unknown message type: ${clientMsg.type}`);
