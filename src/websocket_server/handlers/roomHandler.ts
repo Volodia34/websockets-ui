@@ -12,7 +12,7 @@ import {
     addRoom,
     findRoomById
 } from '../db.js';
-import { broadcastToAll } from '../utils.js';
+import { broadcastToAll } from '../wsUntils.js';
 
 export function handleCreateRoom(
     ws: WebSocket,

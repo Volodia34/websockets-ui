@@ -1,12 +1,13 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { handleRegistration } from './handlers/registrationHandler.js';
+import { authHandlerInstance } from './modules/auth/auth.handler.js'; // НОВИЙ
 import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
-import { handleAddShips, handleAttack, handleRandomAttack } from './handlers/gameHandler.js';
-import { generateConnectionId } from './utils.js';
-import { findPlayerById, gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB } from './db.js';
-import { broadcastToAll } from './utils.js';
-const PORT = 3000;
-const wss = new WebSocketServer({ port: PORT });
+import { playerRepositoryInstance } from './modules/player/player.repository.js';
+import { generateConnectionId } from './core/wsUtils.js';
+import { gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB } from './db.js';
+import { broadcastToAll } from './core/wsUtils.js';
+import { handleAddShips, handleAttack, handleRandomAttack } from "./handlers/gameHandler.js";
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocketServer({ port: Number(PORT) });
 console.log(`WebSocket server started on ws://localhost:${PORT}`);
 const getPlayerIdFromWs = (socket) => {
     return socket.playerId;
@@ -49,7 +50,7 @@ wss.on('connection', (ws, req) => {
                         }));
                         return;
                     }
-                    handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
+                    authHandlerInstance.handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
                     break;
                 case 'create_room':
                     if (!currentPlayerId) {
@@ -208,7 +209,7 @@ wss.on('connection', (ws, req) => {
                 roomContainingPlayer.isGameActive = false;
                 const opponent = roomContainingPlayer.roomUsers.find(user => user.index !== closedPlayerId);
                 if (opponent) {
-                    const opponentPlayerDetails = findPlayerById(opponent.index);
+                    const opponentPlayerDetails = playerRepositoryInstance.findById(opponent.index);
                     const finishPayload = { winPlayer: opponent.index };
                     if (opponentPlayerDetails)
                         updateWinners(opponentPlayerDetails.name);

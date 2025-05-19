@@ -20,9 +20,10 @@ import {
     getOpponentId,
     switchTurn,
     updateWinners,
-    winnersDB, findPlayerById
+    winnersDB,
 } from '../db.js';
-import { broadcastToAll } from '../utils.js';
+import {playerRepositoryInstance} from "../modules/player/player.repository.js";
+import {broadcastToAll} from "../core/wsUtils.js";
 
 export function handleAddShips(
     ws: WebSocket,
@@ -161,7 +162,7 @@ export function handleAttack(
 
     if (attackResult.allSunk) {
         const finishPayload: FinishResponseData = { winPlayer: currentAttackingPlayerId };
-        const winnerPlayer = findPlayerById(currentAttackingPlayerId);
+        const winnerPlayer = playerRepositoryInstance.findById(currentAttackingPlayerId);
         if(winnerPlayer) updateWinners(winnerPlayer.name);
 
         room.isGameActive = false;

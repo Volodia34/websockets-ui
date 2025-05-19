@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { Winner, GameRoom, RegClientData, RegResponseData,  } from '../types.js';
 import { playerRepositoryInstance } from '../modules/player/player.repository.js';
 import { winnersDB, gameRoomsDB } from '../db.js';
-import { broadcastToAll } from '../utils.js';
+import { broadcastToAll } from '../wsUntils.js';
 import {Player} from "../modules/player/player.types.js";
 
 

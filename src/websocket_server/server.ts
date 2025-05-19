@@ -2,21 +2,29 @@ import { WebSocketServer, WebSocket } from 'ws';
 import * as http from 'node:http';
 import {
     ClientMessage,
-    RegClientData,
     AddUserToRoomClientData,
     AddShipsClientData,
     AttackClientData,
-    FinishResponseData, Winner
+    Winner,
+    FinishResponseData
 } from './types.js';
-import { handleRegistration } from './handlers/registrationHandler.js';
-import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
-import { handleAddShips, handleAttack, handleRandomAttack } from './handlers/gameHandler.js';
-import { generateConnectionId } from './utils.js';
-import {findPlayerById, gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB} from './db.js';
-import { broadcastToAll } from './utils.js';
+import { RegClientData } from './modules/auth/auth.types.js';
 
-const PORT = 3000;
-const wss = new WebSocketServer({ port: PORT });
+import { authHandlerInstance } from './modules/auth/auth.handler.js'; // НОВИЙ
+
+import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
+
+import {PlayerRepository, playerRepositoryInstance} from './modules/player/player.repository.js';
+import { PlayerService } from './modules/player/player.service.js';
+import { AuthService } from './modules/auth/auth.service.js';
+
+import { generateConnectionId } from './core/wsUtils.js';
+import {gameRoomsDB, removePlayerFromRooms, updateWinners, winnersDB} from './db.js';
+import { broadcastToAll } from './core/wsUtils.js';
+import {handleAddShips, handleAttack, handleRandomAttack} from "./handlers/gameHandler.js";
+
+const PORT = process.env.PORT || 3000;
+const wss = new WebSocketServer({ port: Number(PORT) });
 
 console.log(`WebSocket server started on ws://localhost:${PORT}`);
 
@@ -62,7 +70,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
                         }));
                         return;
                     }
-                    handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
+                    authHandlerInstance.handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
                     break;
                 case 'create_room':
                     if (!currentPlayerId) {
@@ -216,7 +224,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
                 roomContainingPlayer.isGameActive = false;
                 const opponent = roomContainingPlayer.roomUsers.find(user => user.index !== closedPlayerId);
                 if (opponent) {
-                    const opponentPlayerDetails = findPlayerById(opponent.index);
+                    const opponentPlayerDetails = playerRepositoryInstance.findById(opponent.index);
                     const finishPayload: FinishResponseData = { winPlayer: opponent.index };
                     if(opponentPlayerDetails) updateWinners(opponentPlayerDetails.name);
 

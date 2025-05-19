@@ -10,17 +10,6 @@ export interface ClientMessage {
     id: number;
 }
 
-export interface RegClientData {
-    name: string;
-    password: string;
-}
-
-export interface RegResponseData {
-    name: string;
-    index: string;
-    error: boolean;
-    errorText: string;
-}
 
 export interface GameRoomUser {
     name: string;
