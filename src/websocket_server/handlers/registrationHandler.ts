@@ -1,9 +1,10 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import { Winner, GameRoom, RegClientData, RegResponseData,  } from '../types.js';
+import { Winner, GameRoom,  } from '../types.js';
 import { playerRepositoryInstance } from '../modules/player/player.repository.js';
 import { winnersDB, gameRoomsDB } from '../db.js';
-import { broadcastToAll } from '../wsUntils.js';
 import {Player} from "../modules/player/player.types.js";
+import {RegClientData, RegResponseData} from "../modules/auth/auth.types.js";
+import {broadcastToAll} from "../core/wsUtils.js";
 
 
 export function handleRegistration(

@@ -11,11 +11,6 @@ export interface ClientMessage {
 }
 
 
-export interface GameRoomUser {
-    name: string;
-    index: string;
-}
-
 export type CellState = 0 | 1 | 2 | 3 | 4 | 5;
 
 export interface GameRoom {
@@ -47,14 +42,6 @@ export interface ShipHealth extends ShipData {
 }
 
 
-export interface AddUserToRoomClientData {
-    indexRoom: string;
-}
-
-export interface CreateGameResponseData {
-    idGame: string;
-    idPlayer: string;
-}
 
 export interface AddShipsClientData {
     gameId: string;

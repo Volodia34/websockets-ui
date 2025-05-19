@@ -1,18 +1,13 @@
 import { WebSocket, WebSocketServer } from 'ws';
-import {
-    GameRoom,
-    GameRoomUser,
-    AddUserToRoomClientData,
-    CreateGameResponseData
-} from '../types.js';
-import {
-    gameRoomsDB,
-    getNextRoomId,
-    findPlayerById,
-    addRoom,
-    findRoomById
-} from '../db.js';
-import { broadcastToAll } from '../wsUntils.js';
+import {gameRoomsDB} from "../db.js";
+import { GameRoom, GameRoomUser, AddUserToRoomClientData, CreateGameResponseData } from '../modules/room/room.types.js';
+import {playerRepositoryInstance} from "../modules/player/player.repository.js";
+import {broadcastToAll} from "../core/wsUtils.js";
+import {roomRepositoryInstance} from "../modules/room/room.repository.js";
+
+
+
+
 
 export function handleCreateRoom(
     ws: WebSocket,
@@ -21,7 +16,7 @@ export function handleCreateRoom(
     messageId: number,
     connectionId: string
 ): void {
-    const player = findPlayerById(requestingPlayerId);
+    const player = playerRepositoryInstance.findById(requestingPlayerId);
 
     if (!player) {
         console.error(`[${connectionId}] CRITICAL: Player with ID ${requestingPlayerId} not found for create_room.`);
@@ -51,7 +46,7 @@ export function handleCreateRoom(
         return;
     }
 
-    const newRoomId = getNextRoomId();
+    const newRoomId = roomRepositoryInstance.getNextRoomId();
     const creator: GameRoomUser = { name: player.name, index: player.id };
     const newRoom: GameRoom = {
         roomId: newRoomId,
@@ -62,7 +57,7 @@ export function handleCreateRoom(
         currentPlayerTurn: null,
     };
 
-    addRoom(newRoom);
+    roomRepositoryInstance.addRoom(newRoom);
     console.log(`[${connectionId}] Player ${player.name} (ID: ${requestingPlayerId}) created room ${newRoomId}.`);
 
     const availableRooms = gameRoomsDB
@@ -89,7 +84,7 @@ export function handleAddUserToRoom(
     messageId: number,
     connectionId: string
 ): void {
-    const joiningPlayer = findPlayerById(joiningPlayerId);
+    const joiningPlayer = playerRepositoryInstance.findById(joiningPlayerId);
     if (!joiningPlayer) {
         console.error(`[${connectionId}] Joining player with ID ${joiningPlayerId} not found.`);
         ws.send(JSON.stringify({
@@ -101,7 +96,7 @@ export function handleAddUserToRoom(
     }
 
     const targetRoomId = clientData.indexRoom;
-    const foundRoom = findRoomById(targetRoomId);
+    const foundRoom = roomRepositoryInstance.findById(targetRoomId);
 
     if (!foundRoom) {
         console.warn(`[${connectionId}] Room ${targetRoomId} not found for player ${joiningPlayer.name} (ID: ${joiningPlayerId}).`);

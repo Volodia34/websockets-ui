@@ -2,7 +2,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { AuthService, authServiceInstance } from './auth.service.js';
 import { RegClientData } from './auth.types.js';
 import { winnersDB, gameRoomsDB } from '../../db.js';
-import { GameRoom, Winner } from '../../types.js';
+import { Winner } from '../../types.js';
 import { broadcastToAll } from '../../core/wsUtils.js';
 
 export class AuthHandler {

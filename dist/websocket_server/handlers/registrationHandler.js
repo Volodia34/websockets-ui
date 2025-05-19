@@ -1,6 +1,6 @@
 import { playerRepositoryInstance } from '../modules/player/player.repository.js';
 import { winnersDB, gameRoomsDB } from '../db.js';
-import { broadcastToAll } from '../wsUntils.js';
+import { broadcastToAll } from "../core/wsUtils.js";
 export function handleRegistration(ws, wss, regClientData, messageId, connectionId) {
     const { name: playerName, password: playerPassword } = regClientData;
     if (!playerName || typeof playerName !== 'string' || playerName.trim() === '' ||

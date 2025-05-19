@@ -1,7 +1,8 @@
 import { WebSocket } from 'ws';
-import { findRoomById, updatePlayerShips, setCurrentPlayerTurn, applyAttack, getOpponentId, switchTurn, updateWinners, winnersDB, } from '../db.js';
+import { applyAttack, getOpponentId, switchTurn, updateWinners, winnersDB, } from '../db.js';
 import { playerRepositoryInstance } from "../modules/player/player.repository.js";
 import { broadcastToAll } from "../core/wsUtils.js";
+import { roomRepositoryInstance } from "../modules/room/room.repository.js";
 export function handleAddShips(ws, wss, clientData, messageId, connectionId) {
     const { gameId, ships, indexPlayer: playerIdFromClient } = clientData;
     const currentPlayerId = ws.playerId;
@@ -9,7 +10,7 @@ export function handleAddShips(ws, wss, clientData, messageId, connectionId) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'Auth error or invalid player ID for add_ships.' }), id: messageId }));
         return;
     }
-    const room = findRoomById(gameId);
+    const room = roomRepositoryInstance.findById(gameId);
     if (!room) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: `Game room ${gameId} not found.` }), id: messageId }));
         return;
@@ -28,7 +29,7 @@ export function handleAddShips(ws, wss, clientData, messageId, connectionId) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'You have already submitted your ships.' }), id: messageId }));
         return;
     }
-    const updatedRoom = updatePlayerShips(gameId, currentPlayerId, ships);
+    const updatedRoom = roomRepositoryInstance.updatePlayerShips(gameId, currentPlayerId, ships);
     if (!updatedRoom) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'Failed to save ships.' }), id: messageId }));
         return;
@@ -37,7 +38,7 @@ export function handleAddShips(ws, wss, clientData, messageId, connectionId) {
     if (updatedRoom.shipsReadyCount === 2) {
         console.log(`[${connectionId}] Both players in game ${gameId} ready. Starting game.`);
         const firstPlayerTurnId = updatedRoom.roomUsers[0].index;
-        setCurrentPlayerTurn(gameId, firstPlayerTurnId);
+        roomRepositoryInstance.setCurrentPlayerTurn(gameId, firstPlayerTurnId);
         updatedRoom.currentPlayerTurn = firstPlayerTurnId;
         updatedRoom.roomUsers.forEach(userInRoom => {
             const playerShips = userInRoom.index === updatedRoom.roomUsers[0].index ? updatedRoom.player1Ships : updatedRoom.player2Ships;
@@ -62,7 +63,7 @@ export function handleAttack(ws, wss, clientData, messageId, connectionId) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'Auth error or invalid player ID for attack.' }), id: messageId }));
         return;
     }
-    const room = findRoomById(gameId);
+    const room = roomRepositoryInstance.findById(gameId);
     if (!room || !room.isGameActive) {
         ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: `Game ${gameId} not found or not active.` }), id: messageId }));
         return;

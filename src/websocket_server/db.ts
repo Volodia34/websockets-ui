@@ -1,5 +1,6 @@
 import { Winner, GameRoom, ShipData, CellState, ShipHealth } from './types.js';
 import {Player} from "./modules/player/player.types.js";
+import {roomRepositoryInstance} from "./modules/room/room.repository.js";
 
 export const winnersDB: Winner[] = [];
 export const gameRoomsDB: GameRoom[] = [];
@@ -18,25 +19,6 @@ export function updateWinners(winnerName: string): void {
 }
 
 
-let nextRoomIdCounter = 0;
-export function getNextRoomId(): string {
-    nextRoomIdCounter++;
-    return `room_${nextRoomIdCounter}`;
-}
-
-export function addRoom(room: GameRoom): void {
-    gameRoomsDB.push(room);
-}
-
-export function findRoomById(roomId: string): GameRoom | undefined {
-    return gameRoomsDB.find(room => room.roomId === roomId);
-}
-
-export function removePlayerFromRooms(playerId: string): void {
-    gameRoomsDB.forEach(room => {
-        room.roomUsers = room.roomUsers.filter(user => user.index !== playerId);
-    });
-}
 
 function createInitialBoard(): CellState[][] {
     return Array(10).fill(null).map(() => Array(10).fill(0));
@@ -79,35 +61,6 @@ export function initializeGameData(room: GameRoom): void {
 }
 
 
-export function updatePlayerShips(roomId: string, playerId: string, ships: ShipData[]): GameRoom | undefined {
-    const room = findRoomById(roomId);
-    if (room && room.roomUsers.length === 2) {
-        const playerIndexInRoom = room.roomUsers.findIndex(user => user.index === playerId);
-        if (playerIndexInRoom === 0) {
-            if (!room.player1Ships) {
-                room.player1Ships = ships;
-                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
-            }
-        } else if (playerIndexInRoom === 1) {
-            if (!room.player2Ships) {
-                room.player2Ships = ships;
-                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
-            }
-        }
-        if (room.shipsReadyCount === 2) {
-            initializeGameData(room);
-        }
-        return room;
-    }
-    return undefined;
-}
-
-export function setCurrentPlayerTurn(roomId: string, playerId: string): void {
-    const room = findRoomById(roomId);
-    if (room) {
-        room.currentPlayerTurn = playerId;
-    }
-}
 
 export function getOpponentId(room: GameRoom, currentPlayerId: string): string | undefined {
     return room.roomUsers.find(user => user.index !== currentPlayerId)?.index;
@@ -143,7 +96,7 @@ export function applyAttack(
     x: number,
     y: number
 ): { status: "miss" | "shot" | "killed", hitShipId?: number, allSunk: boolean, sunkShipCells?: {x:number, y:number}[] } | null {
-    const room = findRoomById(roomId);
+    const room = roomRepositoryInstance.findById(roomId);
     if (!room || !room.isGameActive) return null;
 
     const opponentId = getOpponentId(room, attackingPlayerId);
@@ -204,7 +157,7 @@ export function applyAttack(
 }
 
 export function checkAllShipsSunk(roomId: string, playerIdToCheck: string): boolean {
-    const room = findRoomById(roomId);
+    const room = roomRepositoryInstance.findById(roomId);
     if (!room) return false;
     const playerShipStates = room.roomUsers[0].index === playerIdToCheck ? room.player1ShipStates : room.player2ShipStates;
     if (!playerShipStates) return false;

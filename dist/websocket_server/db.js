@@ -1,3 +1,4 @@
+import { roomRepositoryInstance } from "./modules/room/room.repository.js";
 export const winnersDB = [];
 export const gameRoomsDB = [];
 let nextPlayerIdCounter = 0;
@@ -9,22 +10,6 @@ export function updateWinners(winnerName) {
     else {
         winnersDB.push({ name: winnerName, wins: 1 });
     }
-}
-let nextRoomIdCounter = 0;
-export function getNextRoomId() {
-    nextRoomIdCounter++;
-    return `room_${nextRoomIdCounter}`;
-}
-export function addRoom(room) {
-    gameRoomsDB.push(room);
-}
-export function findRoomById(roomId) {
-    return gameRoomsDB.find(room => room.roomId === roomId);
-}
-export function removePlayerFromRooms(playerId) {
-    gameRoomsDB.forEach(room => {
-        room.roomUsers = room.roomUsers.filter(user => user.index !== playerId);
-    });
 }
 function createInitialBoard() {
     return Array(10).fill(null).map(() => Array(10).fill(0));
@@ -62,35 +47,6 @@ export function initializeGameData(room) {
     }
     room.isGameActive = true;
 }
-export function updatePlayerShips(roomId, playerId, ships) {
-    const room = findRoomById(roomId);
-    if (room && room.roomUsers.length === 2) {
-        const playerIndexInRoom = room.roomUsers.findIndex(user => user.index === playerId);
-        if (playerIndexInRoom === 0) {
-            if (!room.player1Ships) {
-                room.player1Ships = ships;
-                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
-            }
-        }
-        else if (playerIndexInRoom === 1) {
-            if (!room.player2Ships) {
-                room.player2Ships = ships;
-                room.shipsReadyCount = (room.shipsReadyCount || 0) + 1;
-            }
-        }
-        if (room.shipsReadyCount === 2) {
-            initializeGameData(room);
-        }
-        return room;
-    }
-    return undefined;
-}
-export function setCurrentPlayerTurn(roomId, playerId) {
-    const room = findRoomById(roomId);
-    if (room) {
-        room.currentPlayerTurn = playerId;
-    }
-}
 export function getOpponentId(room, currentPlayerId) {
     return room.roomUsers.find(user => user.index !== currentPlayerId)?.index;
 }
@@ -116,7 +72,7 @@ function markCellsAroundSunkShip(board, ship) {
     });
 }
 export function applyAttack(roomId, attackingPlayerId, x, y) {
-    const room = findRoomById(roomId);
+    const room = roomRepositoryInstance.findById(roomId);
     if (!room || !room.isGameActive)
         return null;
     const opponentId = getOpponentId(room, attackingPlayerId);
@@ -172,7 +128,7 @@ export function applyAttack(roomId, attackingPlayerId, x, y) {
     return { status: attackStatus, hitShipId, allSunk: allOpponentShipsSunk, sunkShipCells: sunkShipCellsForResponse };
 }
 export function checkAllShipsSunk(roomId, playerIdToCheck) {
-    const room = findRoomById(roomId);
+    const room = roomRepositoryInstance.findById(roomId);
     if (!room)
         return false;
     const playerShipStates = room.roomUsers[0].index === playerIdToCheck ? room.player1ShipStates : room.player2ShipStates;
