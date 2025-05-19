@@ -1,11 +1,14 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as http from 'node:http';
-import {AddShipsClientData, AttackClientData, ClientMessage, FinishResponseData, Winner} from './types.js';
+import { AttackClientData, ClientMessage, FinishResponseData, Winner} from './types.js';
 import { RegClientData } from './modules/auth/auth.types.js';
 import { AddUserToRoomClientData } from './modules/room/room.types.js';
+import { AddShipsClientData } from './modules/game/game.types.js'
 
 import { authHandlerInstance } from './modules/auth/auth.handler.js';
 import { roomHandlerInstance } from './modules/room/room.handler.js';
+import { gameHandlerInstance } from './modules/game/game.handler';
+
 import { roomServiceInstance } from './modules/room/room.service.js';
 
 import { generateConnectionId } from './core/wsUtils.js';
@@ -14,6 +17,10 @@ import {handleAddShips, handleAttack, handleRandomAttack} from "./handlers/gameH
 import {gameRoomsDB, updateWinners, winnersDB} from "./db.js";
 import {playerRepositoryInstance} from "./modules/player/player.repository.js";
 import {roomRepositoryInstance} from "./modules/room/room.repository.js";
+
+
+
+
 
 const PORT = process.env.PORT || 3000;
 const wss = new WebSocketServer({ port: Number(PORT) });
@@ -210,7 +217,7 @@ wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
         if (closedPlayerId) {
             const roomContainingPlayer = gameRoomsDB.find(room => room.roomUsers.some(user => user.index === closedPlayerId) && room.isGameActive);
 
-            removePlayerFromRooms(closedPlayerId);
+            gameHandlerInstance.removePlayerFromRooms(closedPlayerId);
 
             if (roomContainingPlayer) {
                 roomContainingPlayer.isGameActive = false;

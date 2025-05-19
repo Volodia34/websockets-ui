@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { authHandlerInstance } from './modules/auth/auth.handler.js';
 import { roomHandlerInstance } from './modules/room/room.handler.js';
+import { gameHandlerInstance } from './modules/game/game.handler';
 import { generateConnectionId } from './core/wsUtils.js';
 import { broadcastToAll } from './core/wsUtils.js';
 import { handleAddShips, handleAttack, handleRandomAttack } from "./handlers/gameHandler.js";
@@ -204,7 +205,7 @@ wss.on('connection', (ws, req) => {
         console.log(`[${connectionId}] Connection closed. Player ID: ${closedPlayerId || 'N/A'}, Code: ${code}, Reason: ${reason.toString()}`);
         if (closedPlayerId) {
             const roomContainingPlayer = gameRoomsDB.find(room => room.roomUsers.some(user => user.index === closedPlayerId) && room.isGameActive);
-            removePlayerFromRooms(closedPlayerId);
+            gameHandlerInstance.removePlayerFromRooms(closedPlayerId);
             if (roomContainingPlayer) {
                 roomContainingPlayer.isGameActive = false;
                 const opponent = roomContainingPlayer.roomUsers.find(user => user.index !== closedPlayerId);

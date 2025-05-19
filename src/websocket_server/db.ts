@@ -1,6 +1,7 @@
-import { Winner, GameRoom, ShipData, CellState, ShipHealth } from './types.js';
+import { Winner, GameRoom, CellState, ShipHealth } from './types.js';
 import {Player} from "./modules/player/player.types.js";
 import {roomRepositoryInstance} from "./modules/room/room.repository.js";
+import {ShipData} from "./modules/game/game.types.js";
 
 export const winnersDB: Winner[] = [];
 export const gameRoomsDB: GameRoom[] = [];

@@ -27,13 +27,6 @@ export interface GameRoom {
     isGameActive?: boolean;
 }
 
-export interface ShipData {
-    position: { x: number; y: number };
-    direction: boolean;
-    length: number;
-    type: "small" | "medium" | "large" | "huge";
-}
-
 export interface ShipHealth extends ShipData {
     id: number;
     hits: number;
@@ -43,20 +36,7 @@ export interface ShipHealth extends ShipData {
 
 
 
-export interface AddShipsClientData {
-    gameId: string;
-    ships: ShipData[];
-    indexPlayer: string;
-}
 
-export interface StartGameResponseData {
-    ships: ShipData[];
-    currentPlayerIndex: string;
-}
-
-export interface TurnResponseData {
-    currentPlayer: string;
-}
 
 export interface AttackClientData {
     gameId: string;

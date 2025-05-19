@@ -1,4 +1,5 @@
-import {CellState, ShipData, ShipHealth} from '../../types.js';
+import {CellState, ShipHealth} from '../../types.js';
+import {ShipData} from "../game/game.types.js";
 
 export interface GameRoomUser {
     name: string;
