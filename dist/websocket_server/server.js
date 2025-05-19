@@ -1,6 +1,7 @@
 import { WebSocketServer } from 'ws';
 import { handleRegistration } from './handlers/registrationHandler.js';
 import { handleCreateRoom, handleAddUserToRoom } from './handlers/roomHandler.js';
+import { handleAddShips } from './handlers/gameHandler.js';
 import { generateConnectionId } from './utils.js';
 import { gameRoomsDB, removePlayerFromRooms } from './db.js';
 import { broadcastToAll } from './utils.js';
@@ -26,7 +27,7 @@ wss.on('connection', (ws, req) => {
             ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'Invalid JSON format.' }), id: 0 }));
             return;
         }
-        console.log(`[${connectionId}] Rcvd cmd: type=${clientMsg.type}, id=${clientMsg.id}, pId=${currentPlayerId || 'N/A'}`);
+        console.log(`[${connectionId}] Rcvd cmd: type=${clientMsg.type}, id=${clientMsg.id}, pId=${currentPlayerId || 'N/A'}, dataLen=${clientMsg.data?.length}`);
         try {
             switch (clientMsg.type) {
                 case 'reg':
@@ -87,6 +88,35 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: `Invalid data format for add_user_to_room: ${errorMsg}` }),
+                            id: clientMsg.id,
+                        }));
+                    }
+                    break;
+                case 'add_ships':
+                    if (!currentPlayerId) {
+                        console.warn(`[${connectionId}] Unauthorized 'add_ships' attempt.`);
+                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for add_ships' }), id: clientMsg.id }));
+                        return;
+                    }
+                    try {
+                        if (typeof clientMsg.data !== 'string')
+                            throw new Error('Data for add_ships must be a JSON string.');
+                        const addShipsData = JSON.parse(clientMsg.data);
+                        if (!addShipsData.gameId || !Array.isArray(addShipsData.ships) || !addShipsData.indexPlayer) {
+                            throw new Error('Invalid payload for add_ships: gameId, ships array, and indexPlayer are required.');
+                        }
+                        if (addShipsData.indexPlayer !== currentPlayerId) {
+                            console.warn(`[${connectionId}] Mismatched playerId for add_ships. Authenticated: ${currentPlayerId}, Sent: ${addShipsData.indexPlayer}`);
+                            throw new Error('Player ID in add_ships data does not match authenticated player.');
+                        }
+                        handleAddShips(ws, wss, addShipsData, clientMsg.id, connectionId);
+                    }
+                    catch (e) {
+                        const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating add_ships data payload';
+                        console.error(`[${connectionId}] Error in 'add_ships' processing: ${errorMsg}. Payload string: ${clientMsg.data}`);
+                        ws.send(JSON.stringify({
+                            type: 'error',
+                            data: JSON.stringify({ message: `Invalid data or error in add_ships: ${errorMsg}` }),
                             id: clientMsg.id,
                         }));
                     }
