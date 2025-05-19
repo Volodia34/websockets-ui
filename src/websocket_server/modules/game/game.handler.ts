@@ -1,7 +1,8 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { GameService, gameServiceInstance } from './game.service.js';
-import { AddShipsClientData, StartGameDataToClient } from './game.types.js';
+import {AddShipsClientData, StartGameDataToClient, TurnDataToClient} from './game.types.js';
 import { broadcastToAll } from '../../core/wsUtils.js';
+import {AttackClientData, AttackResponseData} from "../../types.js";
 
 export class GameHandler {
     constructor(private gameService: GameService) {}
@@ -69,7 +70,89 @@ export class GameHandler {
         }
     }
 
-    // public handleAttack(...) {}
+    public handleAttack(
+        ws: WebSocket,
+        wss: WebSocketServer,
+        clientData: AttackClientData,
+        messageId: number,
+        connectionId: string
+    ): void {
+        console.log(`[${connectionId}] Handling attack in game ${clientData.gameId} by player <span class="math-inline">\{clientData\.indexPlayer\} on \[</span>{clientData.x}, ${clientData.y}]`);
+
+        const result = this.gameService.attack(clientData, connectionId);
+
+        if (!result.success || !result.attackResult) {
+            console.error(`[${connectionId}] Attack failed: ${result.message}`);
+            ws.send(JSON.stringify({
+                type: 'error',
+                data: JSON.stringify({ message: result.message || "Attack failed." }),
+                id: messageId
+            }));
+            return;
+        }
+
+        const room = result.room;
+        if (room) {
+            const attackResponseToBroadcast: AttackResponseData = {
+                position: result.attackResult.position,
+                status: result.attackResult.status,
+                currentPlayer: result.nextPlayerId || room.currentPlayerTurn || "",
+                shipField: result.attackResult.sunkShip ? [result.attackResult.sunkShip] : undefined,
+                winPlayer: result.winnerId
+            };
+
+            const messagePayload = {
+                type: "attack",
+                data: JSON.stringify(attackResponseToBroadcast),
+                id: 0
+            };
+
+            room.roomUsers.forEach(user => {
+                const targetWs = Array.from(wss.clients as Set<WebSocket & {playerId: string}>)
+                    .find(client => client.playerId === user.index);
+                if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                    targetWs.send(JSON.stringify(messagePayload));
+                }
+            });
+            console.log(`[${connectionId}] Broadcast attack result to room ${room.roomId}. Status: ${result.attackResult.status}`);
+
+            if (result.winnerId) {
+                console.log(`[${connectionId}] Game ${room.roomId} finished. Winner: ${result.winnerId}`);
+                const finishMessage = {
+                    type: "finish",
+                    data: JSON.stringify({ winPlayer: result.winnerId, gameId: room.roomId }),
+                    id: 0
+                };
+                room.roomUsers.forEach(user => {
+                    const targetWs = Array.from(wss.clients as Set<WebSocket & {playerId: string}>)
+                        .find(client => client.playerId === user.index);
+                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                        targetWs.send(JSON.stringify(finishMessage));
+                    }
+                });
+            } else if (result.nextPlayerId) {
+                const turnUpdateData: TurnDataToClient = {
+                    currentPlayer: result.nextPlayerId,
+                    gameId: room.roomId
+                };
+                const turnMessage = {
+                    type: "turn",
+                    data: JSON.stringify(turnUpdateData),
+                    id: 0
+                };
+                room.roomUsers.forEach(user => {
+                    const targetWs = Array.from(wss.clients as Set<WebSocket & {playerId: string}>)
+                        .find(client => client.playerId === user.index);
+                    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+                        targetWs.send(JSON.stringify(turnMessage));
+                    }
+                });
+                console.log(`[${connectionId}] Broadcast turn update to room ${room.roomId}, next player: ${result.nextPlayerId}`);
+            }
+        } else {
+            console.error(`[${connectionId}] Room not found after attack for game ${clientData.gameId}`);
+        }
+    }
 }
 
 export const gameHandlerInstance = new GameHandler(gameServiceInstance);

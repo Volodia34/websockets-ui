@@ -93,5 +93,32 @@ export class RoomRepository {
         }
         return room;
     }
+    getPlayerShips(roomId, playerId) {
+        const room = this.findById(roomId);
+        if (!room)
+            return undefined;
+        const playerIndex = room.roomUsers.findIndex(u => u.index === playerId);
+        if (playerIndex === 0)
+            return room.player1Ships;
+        if (playerIndex === 1)
+            return room.player2Ships;
+        return undefined;
+    }
+    updatePlayerShipState(roomId, playerId, updatedShips) {
+        const room = this.findById(roomId);
+        if (!room)
+            return undefined;
+        const playerIndex = room.roomUsers.findIndex(u => u.index === playerId);
+        if (playerIndex === 0) {
+            room.player1Ships = updatedShips;
+        }
+        else if (playerIndex === 1) {
+            room.player2Ships = updatedShips;
+        }
+        else {
+            return undefined;
+        }
+        return room;
+    }
 }
 export const roomRepositoryInstance = new RoomRepository();

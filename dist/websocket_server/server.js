@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { authHandlerInstance } from './modules/auth/auth.handler.js';
 import { roomHandlerInstance } from './modules/room/room.handler.js';
-import { gameHandlerInstance } from './modules/game/game.handler';
+import { gameHandlerInstance } from './modules/game/game.handler.js';
 import { generateConnectionId } from './core/wsUtils.js';
 import { broadcastToAll } from './core/wsUtils.js';
 import { handleAddShips, handleAttack, handleRandomAttack } from "./handlers/gameHandler.js";

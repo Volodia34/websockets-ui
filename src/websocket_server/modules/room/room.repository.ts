@@ -1,5 +1,5 @@
 import { GameRoom, GameRoomUser } from './room.types.js';
-import { ShipData } from '../../types.js';
+import {ShipData} from "../game/game.types.js";
 
 const gameRoomsDB: GameRoom[] = [];
 let nextRoomIdCounter = 0;
@@ -106,6 +106,30 @@ export class RoomRepository {
         }
         return room;
     }
+
+    public getPlayerShips(roomId: string, playerId: string): ShipData[] | undefined | null {
+        const room = this.findById(roomId);
+        if (!room) return undefined;
+        const playerIndex = room.roomUsers.findIndex(u => u.index === playerId);
+        if (playerIndex === 0) return room.player1Ships;
+        if (playerIndex === 1) return room.player2Ships;
+        return undefined;
+    }
+
+    public updatePlayerShipState(roomId: string, playerId: string, updatedShips: ShipData[]): GameRoom | undefined {
+        const room = this.findById(roomId);
+        if (!room) return undefined;
+        const playerIndex = room.roomUsers.findIndex(u => u.index === playerId);
+        if (playerIndex === 0) {
+            room.player1Ships = updatedShips;
+        } else if (playerIndex === 1) {
+            room.player2Ships = updatedShips;
+        } else {
+            return undefined;
+        }
+        return room;
+    }
+
 }
 
 export const roomRepositoryInstance = new RoomRepository();

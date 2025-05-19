@@ -1,15 +1,14 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as http from 'node:http';
-import { AttackClientData, ClientMessage, FinishResponseData, Winner} from './types.js';
+import { ClientMessage, FinishResponseData, Winner} from './types.js';
 import { RegClientData } from './modules/auth/auth.types.js';
 import { AddUserToRoomClientData } from './modules/room/room.types.js';
-import { AddShipsClientData } from './modules/game/game.types.js'
+import { AddShipsClientData,AttackClientData } from './modules/game/game.types.js'
 
 import { authHandlerInstance } from './modules/auth/auth.handler.js';
 import { roomHandlerInstance } from './modules/room/room.handler.js';
-import { gameHandlerInstance } from './modules/game/game.handler';
+import { gameHandlerInstance } from './modules/game/game.handler.js';
 
-import { roomServiceInstance } from './modules/room/room.service.js';
 
 import { generateConnectionId } from './core/wsUtils.js';
 import { broadcastToAll } from './core/wsUtils.js';
