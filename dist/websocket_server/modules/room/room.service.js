@@ -92,5 +92,11 @@ export class RoomService {
     getAvailableRooms() {
         return this.roomRepository.getAvailableRooms();
     }
+    getRoomsByPlayerId(playerId) {
+        return this.roomRepository.getAll().filter(room => room.roomUsers.some(user => user.index === playerId));
+    }
+    findRoomById(roomId) {
+        return this.roomRepository.findById(roomId);
+    }
 }
 export const roomServiceInstance = new RoomService(roomRepositoryInstance, playerServiceInstance);

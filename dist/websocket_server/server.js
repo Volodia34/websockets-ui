@@ -14,7 +14,7 @@ const getPlayerIdFromWs = (socket) => {
 };
 wss.on('connection', (ws, req) => {
     const connectionId = generateConnectionId();
-    const clientIp = req.socket.remoteAddress;
+    const clientIp = req.socket.remoteAddress || 'N/A';
     console.log(`[${connectionId}] New connection established from IP: ${clientIp}`);
     ws.on('message', (message) => {
         const currentPlayerId = getPlayerIdFromWs(ws);
@@ -28,7 +28,10 @@ wss.on('connection', (ws, req) => {
             ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'Invalid JSON format.' }), id: 0 }));
             return;
         }
-        console.log(`[${connectionId}] Rcvd cmd: type=${clientMsg.type}, id=${clientMsg.id}, pId=${currentPlayerId || 'N/A'}, dataLen=${clientMsg.data?.length}`);
+        const dataPreview = typeof clientMsg.data === 'string' ?
+            (clientMsg.data.length > 70 ? clientMsg.data.substring(0, 70) + '...' : clientMsg.data) :
+            '[Object data]';
+        console.log(`[${connectionId}] Rcvd cmd: type=${clientMsg.type}, id=${clientMsg.id}, pId=${currentPlayerId || 'N/A'}, data='${dataPreview}'`);
         try {
             switch (clientMsg.type) {
                 case 'reg':
@@ -50,27 +53,27 @@ wss.on('connection', (ws, req) => {
                         }));
                         return;
                     }
-                    authHandlerInstance.handleRegistration(ws, wss, regData, clientMsg.id, connectionId);
+                    authHandlerInstance.handleRegistration(ws, wss, regData, clientMsg.id || 0, connectionId);
                     break;
                 case 'create_room':
                     if (!currentPlayerId) {
-                        console.warn(`[${connectionId}] Unauthorized 'create_room' attempt.`);
+                        console.warn(`[${connectionId}] Unauthorized 'create_room' attempt (player not registered/identified).`);
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: 'User not authenticated to create room.' }),
-                            id: clientMsg.id
+                            id: clientMsg.id || 0
                         }));
                         return;
                     }
-                    roomHandlerInstance.handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id, connectionId);
+                    roomHandlerInstance.handleCreateRoom(ws, wss, currentPlayerId, clientMsg.id || 0, connectionId);
                     break;
                 case 'add_user_to_room':
                     if (!currentPlayerId) {
-                        console.warn(`[${connectionId}] Unauthorized 'add_user_to_room' attempt.`);
+                        console.warn(`[${connectionId}] Unauthorized 'add_user_to_room' attempt (player not registered/identified).`);
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: 'User not authenticated to join room.' }),
-                            id: clientMsg.id
+                            id: clientMsg.id || 0
                         }));
                         return;
                     }
@@ -81,7 +84,7 @@ wss.on('connection', (ws, req) => {
                         if (!addUserToRoomData || typeof addUserToRoomData.indexRoom !== 'string' || addUserToRoomData.indexRoom.trim() === '') {
                             throw new Error('indexRoom is missing, not a string, or empty in add_user_to_room data.');
                         }
-                        roomHandlerInstance.handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id, connectionId);
+                        roomHandlerInstance.handleAddUserToRoom(ws, wss, currentPlayerId, addUserToRoomData, clientMsg.id || 0, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing add_user_to_room data payload';
@@ -89,14 +92,14 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: `Invalid data format for add_user_to_room: ${errorMsg}` }),
-                            id: clientMsg.id,
+                            id: clientMsg.id || 0,
                         }));
                     }
                     break;
                 case 'add_ships':
                     if (!currentPlayerId) {
                         console.warn(`[${connectionId}] Unauthorized 'add_ships' attempt.`);
-                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for add_ships' }), id: clientMsg.id }));
+                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for add_ships' }), id: clientMsg.id || 0 }));
                         return;
                     }
                     try {
@@ -107,10 +110,10 @@ wss.on('connection', (ws, req) => {
                             throw new Error('Invalid payload for add_ships: gameId, ships array, and indexPlayer are required.');
                         }
                         if (addShipsData.indexPlayer !== currentPlayerId) {
-                            console.warn(`[${connectionId}] Mismatched playerId for add_ships. Authenticated: ${currentPlayerId}, Sent: ${addShipsData.indexPlayer}`);
+                            console.warn(`[${connectionId}] Mismatched playerId for add_ships. Authenticated: ${currentPlayerId}, Sent: ${addShipsData.indexPlayer}. Denying request.`);
                             throw new Error('Player ID in add_ships data does not match authenticated player.');
                         }
-                        gameHandlerInstance.handleAddShips(ws, wss, addShipsData, clientMsg.id, connectionId);
+                        gameHandlerInstance.handleAddShips(ws, wss, addShipsData, clientMsg.id || 0, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating add_ships data payload';
@@ -118,14 +121,14 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: `Invalid data or error in add_ships: ${errorMsg}` }),
-                            id: clientMsg.id,
+                            id: clientMsg.id || 0,
                         }));
                     }
                     break;
                 case 'attack':
                     if (!currentPlayerId) {
                         console.warn(`[${connectionId}] Unauthorized 'attack' attempt.`);
-                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for attack' }), id: clientMsg.id }));
+                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for attack' }), id: clientMsg.id || 0 }));
                         return;
                     }
                     try {
@@ -133,13 +136,13 @@ wss.on('connection', (ws, req) => {
                             throw new Error('Data for attack must be a JSON string.');
                         const attackData = JSON.parse(clientMsg.data);
                         if (attackData.indexPlayer !== currentPlayerId) {
-                            console.warn(`[${connectionId}] Mismatched playerId for attack. Authenticated: ${currentPlayerId}, Sent: ${attackData.indexPlayer}`);
+                            console.warn(`[${connectionId}] Mismatched playerId for attack. Authenticated: ${currentPlayerId}, Sent: ${attackData.indexPlayer}. Denying request.`);
                             throw new Error('Player ID in attack data does not match authenticated player.');
                         }
                         if (typeof attackData.x !== 'number' || typeof attackData.y !== 'number' || !attackData.gameId) {
-                            throw new Error('Invalid payload for attack: gameId, x, and y are required.');
+                            throw new Error('Invalid payload for attack: gameId, x (number), and y (number) are required.');
                         }
-                        gameHandlerInstance.handleAttack(ws, wss, attackData, clientMsg.id, connectionId);
+                        gameHandlerInstance.handleAttack(ws, wss, attackData, clientMsg.id || 0, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating attack data payload';
@@ -147,14 +150,14 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: `Invalid data or error in attack: ${errorMsg}` }),
-                            id: clientMsg.id,
+                            id: clientMsg.id || 0,
                         }));
                     }
                     break;
-                case 'randomAttack':
+                case 'single_play':
                     if (!currentPlayerId) {
                         console.warn(`[${connectionId}] Unauthorized 'randomAttack' attempt.`);
-                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for randomAttack' }), id: clientMsg.id }));
+                        ws.send(JSON.stringify({ type: 'error', data: JSON.stringify({ message: 'User not authenticated for randomAttack' }), id: clientMsg.id || 0 }));
                         return;
                     }
                     try {
@@ -162,13 +165,13 @@ wss.on('connection', (ws, req) => {
                             throw new Error('Data for randomAttack must be a JSON string.');
                         const randomAttackData = JSON.parse(clientMsg.data);
                         if (randomAttackData.indexPlayer !== currentPlayerId) {
-                            console.warn(`[${connectionId}] Mismatched playerId for randomAttack. Authenticated: ${currentPlayerId}, Sent: ${randomAttackData.indexPlayer}`);
+                            console.warn(`[${connectionId}] Mismatched playerId for randomAttack. Authenticated: ${currentPlayerId}, Sent: ${randomAttackData.indexPlayer}. Denying request.`);
                             throw new Error('Player ID in randomAttack data does not match authenticated player.');
                         }
                         if (!randomAttackData.gameId) {
                             throw new Error('Invalid payload for randomAttack: gameId is required.');
                         }
-                        // gameHandlerInstance.handleRandomAttack(ws, wss, randomAttackData, clientMsg.id, connectionId);
+                        gameHandlerInstance.handleRandomAttack(ws, wss, randomAttackData, clientMsg.id || 0, connectionId);
                     }
                     catch (e) {
                         const errorMsg = e instanceof Error ? e.message : 'Error parsing/validating randomAttack data payload';
@@ -176,22 +179,22 @@ wss.on('connection', (ws, req) => {
                         ws.send(JSON.stringify({
                             type: 'error',
                             data: JSON.stringify({ message: `Invalid data or error in randomAttack: ${errorMsg}` }),
-                            id: clientMsg.id,
+                            id: clientMsg.id || 0,
                         }));
                     }
                     break;
                 default:
-                    console.warn(`[${connectionId}] Unknown message type: ${clientMsg.type}`);
+                    console.warn(`[${connectionId}] Unknown message type received: ${clientMsg.type}`);
                     ws.send(JSON.stringify({
                         type: 'error',
                         data: JSON.stringify({ message: `Unknown command type: ${clientMsg.type}` }),
-                        id: clientMsg.id
+                        id: clientMsg.id || 0
                     }));
             }
         }
         catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error during command processing';
-            console.error(`[${connectionId}] Error processing command ${clientMsg?.type}: ${errorMessage}`);
+            console.error(`[${connectionId}] Critical error processing command ${clientMsg?.type}: ${errorMessage}`, error.stack);
             ws.send(JSON.stringify({
                 type: 'error',
                 data: JSON.stringify({ message: `Server error while processing ${clientMsg?.type}: ${errorMessage}` }),
@@ -201,7 +204,8 @@ wss.on('connection', (ws, req) => {
     });
     ws.on('close', (code, reason) => {
         const closedPlayerId = getPlayerIdFromWs(ws);
-        console.log(`[${connectionId}] Connection closed. Player ID: ${closedPlayerId || 'N/A'}, Code: ${code}, Reason: ${reason.toString()}`);
+        const reasonString = reason ? reason.toString() : 'No reason provided';
+        console.log(`[${connectionId}] Connection closed. Player ID: ${closedPlayerId || 'N/A'}, Code: ${code}, Reason: ${reasonString}`);
         if (closedPlayerId) {
             const roomContainingPlayer = gameRoomsDB.find(room => room.roomUsers.some(user => user.index === closedPlayerId) && room.isGameActive);
             gameHandlerInstance.removePlayerFromRooms(closedPlayerId);
@@ -210,18 +214,24 @@ wss.on('connection', (ws, req) => {
                 const opponent = roomContainingPlayer.roomUsers.find(user => user.index !== closedPlayerId);
                 if (opponent) {
                     const opponentPlayerDetails = playerRepositoryInstance.findById(opponent.index);
-                    const finishPayload = { winPlayer: opponent.index };
-                    if (opponentPlayerDetails)
+                    if (opponentPlayerDetails) {
                         updateWinners(opponentPlayerDetails.name);
+                        console.log(`[${connectionId}] Player ${opponentPlayerDetails.name} (${opponent.index}) wins by default as ${closedPlayerId} disconnected from game ${roomContainingPlayer.roomId}.`);
+                    }
+                    const finishPayload = { winPlayer: opponent.index };
                     let opponentWs;
-                    wss.clients.forEach(client => { if (client.playerId === opponent.index)
-                        opponentWs = client; });
+                    wss.clients.forEach(client => {
+                        if (getPlayerIdFromWs(client) === opponent.index) {
+                            opponentWs = client;
+                        }
+                    });
                     if (opponentWs && opponentWs.readyState === WebSocket.OPEN) {
                         opponentWs.send(JSON.stringify({ type: 'finish', data: JSON.stringify(finishPayload), id: 0 }));
                         console.log(`[${connectionId}] Sent 'finish' to opponent ${opponent.index} as player ${closedPlayerId} disconnected.`);
                     }
                     const winnersPayload = [...winnersDB];
                     broadcastToAll(wss, { type: "update_winners", data: JSON.stringify(winnersPayload), id: 0 });
+                    console.log(`[Broadcast] Sent 'update_winners' after player ${closedPlayerId} disconnected.`);
                 }
             }
             const availableRooms = gameRoomsDB
@@ -231,24 +241,24 @@ wss.on('connection', (ws, req) => {
                 roomUsers: room.roomUsers.map(u => ({ name: u.name, index: u.index }))
             }));
             broadcastToAll(wss, { type: "update_room", data: JSON.stringify(availableRooms), id: 0 });
-            console.log(`[Broadcast] Sent 'update_room' after player ${closedPlayerId} disconnected.`);
+            console.log(`[Broadcast] Sent 'update_room' after player ${closedPlayerId} disconnected or game ended.`);
             delete ws.playerId;
         }
     });
     ws.on('error', (error) => {
-        console.error(`[${connectionId}] WebSocket error for client: ${error.message}`);
+        console.error(`[${connectionId}] WebSocket error for client (Player ID: ${getPlayerIdFromWs(ws) || 'N/A'}): ${error.message}`, error.stack);
     });
 });
 wss.on('error', (error) => {
-    console.error(`WebSocketServer global error: ${error.message}`);
+    console.error(`WebSocketServer global error: ${error.message}`, error.stack);
 });
 wss.on('close', () => {
-    console.log('WebSocketServer has closed.');
+    console.log('WebSocketServer has closed gracefully.');
 });
 const shutdown = () => {
     console.log('Shutting down WebSocket server...');
     wss.clients.forEach((client) => {
-        client.terminate();
+        client.close(1001, 'Server is shutting down.');
     });
     wss.close((err) => {
         if (err) {

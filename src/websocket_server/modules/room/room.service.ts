@@ -123,6 +123,16 @@ export class RoomService {
     public getAvailableRooms(): Pick<GameRoom, 'roomId' | 'roomUsers'>[] {
         return this.roomRepository.getAvailableRooms();
     }
+
+    public getRoomsByPlayerId(playerId: string): GameRoom[] {
+        return this.roomRepository.getAll().filter(room =>
+            room.roomUsers.some(user => user.index === playerId)
+        );
+    }
+
+    public findRoomById(roomId: string): GameRoom | undefined {
+        return this.roomRepository.findById(roomId);
+    }
 }
 
 export const roomServiceInstance = new RoomService(roomRepositoryInstance, playerServiceInstance);
